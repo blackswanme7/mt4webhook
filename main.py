@@ -82,7 +82,7 @@ def webhook(user_id):
 
         for order in data:
             symbol = order["symbol"]
-            lot = order["lot"]
+            lot = round(float(order["lot"]), 2)
             side = order["side"]
             operation = 0 if side == "buy" else 1
 
