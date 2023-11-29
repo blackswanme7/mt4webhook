@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, abort
 import json
 import grpc
 from mt4grpc.sdk.python3 import mt4_pb2_grpc
@@ -11,6 +11,19 @@ logging.basicConfig(filename='server.log', level=logging.DEBUG)
 
 # Flask application setup
 app = Flask(__name__)
+
+# # TradingView IP addresses
+# allowed_ips = ["52.89.214.238", "34.212.75.30", "54.218.53.128", "52.32.178.7"]
+
+# # Decorator to limit access to allowed IPs
+# def limit_ips(allowed_ips):
+#     def decorator(f):
+#         def decorated_function(*args, **kwargs):
+#             if request.remote_addr not in allowed_ips:
+#                 abort(403)  # Forbidden access
+#             return f(*args, **kwargs)
+#         return decorated_function
+#     return decorator
 
 # A dictionary to store tokens for each user
 # Format: { user_id: {"token": <token>, "last_updated": <datetime>} }
@@ -51,6 +64,7 @@ def refresh_token_if_needed(user_id):
 
 # Webhook endpoint
 @app.route('/<int:user_id>', methods=['POST'])
+# @limit_ips(allowed_ips)
 def webhook(user_id):
     try:
         if str(user_id) not in config:
