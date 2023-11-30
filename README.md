@@ -20,3 +20,6 @@ buy
 
 sell 
 `[{"symbol": "XAUUSD", "lot": 1, "side": "sell"}]`
+
+exit
+`[{"symbol":"BTCUSD","exit":true}]`

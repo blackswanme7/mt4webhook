@@ -61,7 +61,27 @@ def refresh_token_if_needed(user_id):
         token_cache[user_id]["last_updated"] is None or
         now - token_cache[user_id]["last_updated"] > timedelta(hours=6)):
         connect_to_mt4(user_id)
+# Function to close all orders for a given symbol
+def close_all_orders(symbol, token):
+    channel = grpc.secure_channel('mt4grpc.mtapi.io:443', grpc.ssl_channel_credentials())
+    mt4 = mt4_pb2_grpc.MT4Stub(channel)
 
+    req = OpenedOrderRequest(id=token)
+    res = mt4.OpenedOrders(req)
+    if res.error.message:
+        logging.error(f"Error retrieving open orders: {res.error.message}")
+        raise Exception(res.error.message)
+
+    tickets_to_close = [order.Ticket for order in res.result if order.Symbol == symbol]
+    
+    trading = mt4_pb2_grpc.TradingStub(channel)
+    for ticket in tickets_to_close:
+        order_close_req = OrderCloseRequest(id=token, ticket=ticket)
+        order_close_res = trading.OrderClose(order_close_req)
+        if order_close_res.error.message:
+            logging.error(f"Error closing order {ticket}: {order_close_res.error.message}")
+        else:
+            logging.info(f"Successfully closed order {ticket}")
 # Webhook endpoint
 @app.route('/<int:user_id>', methods=['POST'])
 # @limit_ips(allowed_ips)
@@ -81,29 +101,33 @@ def webhook(user_id):
         trading = mt4_pb2_grpc.TradingStub(grpc.secure_channel('mt4grpc.mtapi.io:443', grpc.ssl_channel_credentials()))
 
         for order in data:
-            symbol = order["symbol"]
-            lot = round(float(order["lot"]), 2)
-            side = order["side"]
-            operation = 0 if side == "buy" else 1
+            if 'exit' in order and order['exit']:
+                close_all_orders(order["symbol"], token)
+                logging.info(f"Closed all orders for {order['symbol']} for user {user_id}")
+            else:
+                symbol = order["symbol"]
+                lot = round(float(order["lot"]), 2)
+                side = order["side"]
+                operation = 0 if side == "buy" else 1
 
-            order_send_req = OrderSendRequest(
-                id=token,
-                symbol=symbol,
-                operation=operation,
-                volume=lot,
-                price=0,
-                slippage=0,
-                stoploss=0,
-                takeprofit=0,
-                placedType=0
-            )
-            order_send_res = trading.OrderSend(order_send_req)
-            # Log the response from the trading call
-            logging.info(f"Trading response for user {user_id}, order {order}: {order_send_res}")
+                order_send_req = OrderSendRequest(
+                    id=token,
+                    symbol=symbol,
+                    operation=operation,
+                    volume=lot,
+                    price=0,
+                    slippage=0,
+                    stoploss=0,
+                    takeprofit=0,
+                    placedType=0
+                )
+                order_send_res = trading.OrderSend(order_send_req)
+                # Log the response from the trading call
+                logging.info(f"Trading response for user {user_id}, order {order}: {order_send_res}")
 
-            if order_send_res.error.message:
-                logging.error(f"Order error for user {user_id}: {order_send_res.error.message}")
-                continue
+                if order_send_res.error.message:
+                    logging.error(f"Order error for user {user_id}: {order_send_res.error.message}")
+                    continue
 
         return jsonify({'status': 'orders processed'}), 200
     except Exception as e:
