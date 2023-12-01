@@ -101,38 +101,53 @@ def webhook(user_id):
         trading = mt4_pb2_grpc.TradingStub(grpc.secure_channel('mt4grpc.mtapi.io:443', grpc.ssl_channel_credentials()))
 
         for order in data:
-            if ('exit' in order) and (order['exit'] in [0, True]):
-                close_all_orders(order["symbol"], token)
-                logging.info(f"Closed all orders for {order['symbol']} for user {user_id}")
-            else:
-                symbol = order["symbol"]
-                lot = round(float(order["lot"]), 2)
-                side = order["side"]
-                operation = 0 if side == "buy" else 1
+            symbol = order["symbol"]
+            
+            # If 'exit' is 0, close all orders for the symbol and continue to the next order
+            if order.get('exit') == '0':
+                close_all_orders(symbol, token)
+                logging.info(f"Closed all orders for {symbol} for user {user_id}")
+                continue
 
-                order_send_req = OrderSendRequest(
-                    id=token,
-                    symbol=symbol,
-                    operation=operation,
-                    volume=lot,
-                    price=0,
-                    slippage=0,
-                    stoploss=0,
-                    takeprofit=0,
-                    placedType=0
-                )
-                order_send_res = trading.OrderSend(order_send_req)
-                # Log the response from the trading call
-                logging.info(f"Trading response for user {user_id}, order {order}: {order_send_res}")
+            # If 'exit' is true, process the order and then close all orders for the symbol
+            if order.get('exit') == 'true':
+                close_all_orders(symbol, token)
+                logging.info(f"Processed and closed all orders for {symbol} for user {user_id}")
+                continue
 
-                if order_send_res.error.message:
-                    logging.error(f"Order error for user {user_id}: {order_send_res.error.message}")
-                    continue
+            # Otherwise, just process the order
+            process_order(order, token, trading)
+
 
         return jsonify({'status': 'orders processed'}), 200
     except Exception as e:
         logging.error(f"Webhook error for user {user_id}: {str(e)}")
         return jsonify({'error': str(e)}), 500
+    
+def process_order(order, token, trading_stub):
+    # Function to process buy or sell order
+    symbol = order["symbol"]
+    lot = round(float(order["lot"]), 2)
+    side = order["side"]
+    operation = 0 if side == "buy" else 1
+
+    order_send_req = OrderSendRequest(
+        id=token,
+        symbol=symbol,
+        operation=operation,
+        volume=lot,
+        price=0,
+        slippage=0,
+        stoploss=0,
+        takeprofit=0,
+        placedType=0
+    )
+    order_send_res = trading_stub.OrderSend(order_send_req)
+    # Log the response from the trading call
+    logging.info(f"Trading response , order {order}: {order_send_res}")
+
+    if order_send_res.error.message:
+        logging.error(f"Order error for : {order_send_res.error.message}")
 
 
 if __name__ == '__main__':
