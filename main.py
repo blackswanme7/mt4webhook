@@ -101,7 +101,7 @@ def webhook(user_id):
         trading = mt4_pb2_grpc.TradingStub(grpc.secure_channel('mt4grpc.mtapi.io:443', grpc.ssl_channel_credentials()))
 
         for order in data:
-            if 'exit' in order and order['exit']:
+            if ('exit' in order) and (order['exit'] in [0, True]):
                 close_all_orders(order["symbol"], token)
                 logging.info(f"Closed all orders for {order['symbol']} for user {user_id}")
             else:
