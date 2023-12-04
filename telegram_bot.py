@@ -62,7 +62,9 @@ def add_config(update, context):
 
     args = context.args
     if len(args) == 3:
-        numeric_user_id, password, host = args  # Adjust the order of arguments
+        numeric_user_id = int(args[0])
+        password, host = args[1], args[2]
+
 
         # Attempt to connect to MT4 with provided credentials
         try:
