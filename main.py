@@ -5,10 +5,18 @@ from mt4grpc.sdk.python3 import mt4_pb2_grpc
 from mt4grpc.sdk.python3.mt4_pb2 import *
 import logging
 from datetime import datetime, timedelta
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
+from dotenv import load_dotenv
+import os
+# Load environment variables
+load_dotenv()
 
 # Set up logging
 logging.basicConfig(filename='server.log', level=logging.DEBUG)
-
+# Load Telegram token and server IP from environment variables
+TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
+SERVER_IP = os.getenv('SERVER_IP')
 # Flask application setup
 app = Flask(__name__)
 
@@ -30,9 +38,24 @@ app = Flask(__name__)
 token_cache = {}
 
 # Read configuration from a file for multiple users
-with open('config.json', 'r') as config_file:
-    config = json.load(config_file)
+def load_config():
+    with open('config.json', 'r') as config_file:
+        return json.load(config_file)
 
+config = load_config()
+# Define a handler for the file change
+class ConfigFileChangeHandler(FileSystemEventHandler):
+    def on_modified(self, event):
+        global config
+        # Check if the modified file is config.json
+        if event.src_path.endswith("config.json"):
+            logging.info("config.json has been modified. Reloading configurations.")
+            config = load_config()
+
+# Set up the observer
+observer = Observer()
+observer.schedule(ConfigFileChangeHandler(), path='.', recursive=False)
+observer.start()
 # Function to connect to MT4 and update the token for a specific user
 def connect_to_mt4(user_id):
     user_config = config[str(user_id)]
