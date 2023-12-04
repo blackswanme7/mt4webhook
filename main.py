@@ -7,16 +7,12 @@ import logging
 from datetime import datetime, timedelta
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-from dotenv import load_dotenv
 import os
 # Load environment variables
-load_dotenv()
 
 # Set up logging
 logging.basicConfig(filename='server.log', level=logging.DEBUG)
 # Load Telegram token and server IP from environment variables
-TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
-SERVER_IP = os.getenv('SERVER_IP')
 # Flask application setup
 app = Flask(__name__)
 

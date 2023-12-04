@@ -1,5 +1,4 @@
 from telegram.ext import Updater, CommandHandler
-from dotenv import load_dotenv
 import json
 import logging
 import threading
@@ -14,11 +13,10 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 # Load environment variables
-load_dotenv()
 
 # Bot Token from .env file
-TOKEN = os.getenv('TELEGRAM_TOKEN')
-WEBHOOK_URL = os.getenv('WEBHOOK_URL')
+TOKEN = os.environ.get('TELEGRAM_TOKEN')
+WEBHOOK_URL = os.environ.get('WEBHOOK_URL')
 # Load or initialize config
 def load_config():
     try:
