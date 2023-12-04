@@ -23,3 +23,5 @@ sell
 
 exit
 `[{"symbol":"BTCUSD","exit":true}]`
+
+# Telegram Bot options to add cred
