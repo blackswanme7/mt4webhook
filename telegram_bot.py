@@ -133,7 +133,7 @@ def view_config(update, context):
         username = details.get("user", "Not set")
         # Construct the webhook URL for each user
         webhook_url = f"{WEBHOOK_URL}/{user_id}"
-        message += f"\nWebhook URL: {webhook_url}\n For Username: {username}\n"
+        message += f"\nWebhook URL: {webhook_url}\nFor Username: {username}\n"
 
     update.message.reply_text(message)
 
