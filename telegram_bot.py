@@ -22,7 +22,7 @@ def load_config():
     try:
         with open('config.json', 'r') as file:
             return json.load(file)
-    except FileNotFoundError:
+    except (FileNotFoundError, json.JSONDecodeError):
         return {}
 
 config = load_config()
