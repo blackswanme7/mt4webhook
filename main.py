@@ -45,7 +45,6 @@ class ConfigFileChangeHandler(FileSystemEventHandler):
         global config
         # Check if the modified file is config.json
         if event.src_path.endswith("config.json"):
-            logging.info("config.json has been modified. Reloading configurations.")
             config = load_config()
 
 # Set up the observer
