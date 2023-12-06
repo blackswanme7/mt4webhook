@@ -36,23 +36,27 @@ app = Flask(__name__)
 # Format: { user_id: {"token": <token>, "last_updated": <datetime>} }
 token_cache = {}
 
-# Read configuration from a file for multiple users
+# Function to load configuration from a file
 def load_config():
-    with open('config.json', 'r') as config_file:
-        return json.load(config_file)
+    global config
+    try:
+        with open('config.json', 'r') as config_file:
+            config = json.load(config_file)
+    except FileNotFoundError:
+        config = {}
 
-config = load_config()
+# Load the initial configuration
+load_config()
+
 # Define a handler for the file change
-
 class ConfigFileChangeHandler(FileSystemEventHandler):
     def on_modified(self, event):
         if 'server.log' in event.src_path:
             # Ignore changes to the server.log file
             return
-        global config
         if event.src_path.endswith("config.json"):
             logging.info("config.json has been modified. Reloading configurations.")
-            config = load_config()
+            load_config()
 
 # Set up the observer
 observer = Observer()
