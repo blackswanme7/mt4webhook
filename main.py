@@ -40,11 +40,15 @@ def load_config():
 
 config = load_config()
 # Define a handler for the file change
+
 class ConfigFileChangeHandler(FileSystemEventHandler):
     def on_modified(self, event):
+        if 'server.log' in event.src_path:
+            # Ignore changes to the server.log file
+            return
         global config
-        # Check if the modified file is config.json
         if event.src_path.endswith("config.json"):
+            logging.info("config.json has been modified. Reloading configurations.")
             config = load_config()
 
 # Set up the observer
