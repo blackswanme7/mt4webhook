@@ -2,3 +2,5 @@ grpcio
 protobuf
 Flask 
 gunicorn
+watchdog
+python-telegram-bot==13.7

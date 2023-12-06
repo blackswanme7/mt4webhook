@@ -5,10 +5,17 @@ from mt4grpc.sdk.python3 import mt4_pb2_grpc
 from mt4grpc.sdk.python3.mt4_pb2 import *
 import logging
 from datetime import datetime, timedelta
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
+import os
+# Load environment variables
 
 # Set up logging
 logging.basicConfig(filename='server.log', level=logging.DEBUG)
+# Set the logging level for the watchdog module
+logging.getLogger('watchdog').setLevel(logging.WARNING)
 
+# Load Telegram token and server IP from environment variables
 # Flask application setup
 app = Flask(__name__)
 
@@ -27,15 +34,45 @@ app = Flask(__name__)
 
 # A dictionary to store tokens for each user
 # Format: { user_id: {"token": <token>, "last_updated": <datetime>} }
+# Global configuration variable
+global_config = {}
+
+# Function to load configuration from a file
+def load_config():
+    try:
+        with open('config.json', 'r') as config_file:
+            data = config_file.read()
+            if not data:  # Check if the file is empty
+                return {}
+            return json.loads(data)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+
+# Initial load
+global_config = load_config()
+
+# Define a handler for the file change
+class ConfigFileChangeHandler(FileSystemEventHandler):
+    def on_modified(self, event):
+        global global_config
+        if 'server.log' in event.src_path:
+            return
+        if event.src_path.endswith("config.json"):
+            logging.info("config.json has been modified. Reloading configurations.")
+            global_config = load_config()
+
+# Set up the observer
+observer = Observer()
+observer.schedule(ConfigFileChangeHandler(), path='.', recursive=False)
+observer.start()
+
+
 token_cache = {}
 
-# Read configuration from a file for multiple users
-with open('config.json', 'r') as config_file:
-    config = json.load(config_file)
 
-# Function to connect to MT4 and update the token for a specific user
 def connect_to_mt4(user_id):
-    user_config = config[str(user_id)]
+    user_config = global_config.get(str(user_id), {})
     try:
         channel = grpc.secure_channel('mt4grpc.mtapi.io:443', grpc.ssl_channel_credentials())
         connection = mt4_pb2_grpc.ConnectionStub(channel)
@@ -83,11 +120,18 @@ def close_all_orders(symbol, token):
         else:
             logging.info(f"Successfully closed order {ticket}")
 # Webhook endpoint
+
+# Function to reload the configuration
+def reload_config():
+    global global_config
+    global_config = load_config()
+
 @app.route('/<int:user_id>', methods=['POST'])
 # @limit_ips(allowed_ips)
 def webhook(user_id):
+    reload_config()  # Reload the config before using it
     try:
-        if str(user_id) not in config:
+        if str(user_id) not in global_config:
             return jsonify({'error': 'Invalid user'}), 403
 
         # Refresh the token if needed
