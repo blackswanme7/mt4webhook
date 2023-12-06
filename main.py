@@ -34,37 +34,41 @@ app = Flask(__name__)
 
 # A dictionary to store tokens for each user
 # Format: { user_id: {"token": <token>, "last_updated": <datetime>} }
-token_cache = {}
+# Global configuration variable
+global_config = {}
 
 # Function to load configuration from a file
 def load_config():
-    global config
     try:
         with open('config.json', 'r') as config_file:
-            config = json.load(config_file)
+            return json.load(config_file)
     except FileNotFoundError:
-        config = {}
+        return {}
 
-# Load the initial configuration
-load_config()
+# Initial load
+global_config = load_config()
 
 # Define a handler for the file change
 class ConfigFileChangeHandler(FileSystemEventHandler):
     def on_modified(self, event):
+        global global_config
         if 'server.log' in event.src_path:
-            # Ignore changes to the server.log file
             return
         if event.src_path.endswith("config.json"):
             logging.info("config.json has been modified. Reloading configurations.")
-            load_config()
+            global_config = load_config()
 
 # Set up the observer
 observer = Observer()
 observer.schedule(ConfigFileChangeHandler(), path='.', recursive=False)
 observer.start()
-# Function to connect to MT4 and update the token for a specific user
+
+
+token_cache = {}
+
+
 def connect_to_mt4(user_id):
-    user_config = config[str(user_id)]
+    user_config = global_config.get(str(user_id), {})
     try:
         channel = grpc.secure_channel('mt4grpc.mtapi.io:443', grpc.ssl_channel_credentials())
         connection = mt4_pb2_grpc.ConnectionStub(channel)
@@ -116,7 +120,7 @@ def close_all_orders(symbol, token):
 # @limit_ips(allowed_ips)
 def webhook(user_id):
     try:
-        if str(user_id) not in config:
+        if str(user_id) not in global_config:
             return jsonify({'error': 'Invalid user'}), 403
 
         # Refresh the token if needed
