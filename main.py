@@ -41,9 +41,13 @@ global_config = {}
 def load_config():
     try:
         with open('config.json', 'r') as config_file:
-            return json.load(config_file)
-    except FileNotFoundError:
+            data = config_file.read()
+            if not data:  # Check if the file is empty
+                return {}
+            return json.loads(data)
+    except (FileNotFoundError, json.JSONDecodeError):
         return {}
+
 
 # Initial load
 global_config = load_config()
@@ -116,9 +120,16 @@ def close_all_orders(symbol, token):
         else:
             logging.info(f"Successfully closed order {ticket}")
 # Webhook endpoint
+
+# Function to reload the configuration
+def reload_config():
+    global global_config
+    global_config = load_config()
+
 @app.route('/<int:user_id>', methods=['POST'])
 # @limit_ips(allowed_ips)
 def webhook(user_id):
+    reload_config()  # Reload the config before using it
     try:
         if str(user_id) not in global_config:
             return jsonify({'error': 'Invalid user'}), 403
