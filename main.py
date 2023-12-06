@@ -12,6 +12,9 @@ import os
 
 # Set up logging
 logging.basicConfig(filename='server.log', level=logging.DEBUG)
+# Set the logging level for the watchdog module
+logging.getLogger('watchdog').setLevel(logging.WARNING)
+
 # Load Telegram token and server IP from environment variables
 # Flask application setup
 app = Flask(__name__)
