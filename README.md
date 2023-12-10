@@ -23,3 +23,6 @@ sell
 
 exit
 `[{"symbol":"GBPUSD.HKT","lot":"0","side":"buy","exit":"0"}]`
+
+
+## only open one position . 
