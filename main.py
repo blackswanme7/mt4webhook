@@ -129,7 +129,6 @@ def reload_config():
 @app.route('/<int:user_id>', methods=['POST'])
 # @limit_ips(allowed_ips)
 def webhook(user_id):
-    reload_config()  # Reload the config before using it
     try:
         if str(user_id) not in global_config:
             return jsonify({'error': 'Invalid user'}), 403
