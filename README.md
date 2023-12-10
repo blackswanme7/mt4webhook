@@ -23,3 +23,5 @@ sell
 
 exit
 `[{"symbol":"GBPUSD.HKT","lot":"0","side":"buy","exit":"0"}]`
+
+changes modificaiton of config
