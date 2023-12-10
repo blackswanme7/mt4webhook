@@ -171,6 +171,8 @@ def webhook(user_id):
 def process_order(order, token, trading_stub):
     # Function to process buy or sell order
     symbol = order["symbol"]
+    # Close all orders for the symbol before placing a new one
+    close_all_orders(symbol, token)
     lot = round(float(order["lot"]), 2)
     side = order["side"]
     operation = 0 if side == "buy" else 1
