@@ -35,8 +35,19 @@ app = Flask(__name__)
 # A dictionary to store tokens for each user
 # Format: { user_id: {"token": <token>, "last_updated": <datetime>} }
 # Global configuration variable
-global_config = {}
 
+
+
+
+# Initial load
+global_config = load_config()
+
+# Persistent gRPC Channel and Stubs
+grpc_channel = grpc.secure_channel('mt4grpc.mtapi.io:443', grpc.ssl_channel_credentials())
+connection_stub = mt4_pb2_grpc.ConnectionStub(grpc_channel)
+trading_stub = mt4_pb2_grpc.TradingStub(grpc_channel)
+
+token_cache = {}
 # Function to load configuration from a file
 def load_config():
     try:
@@ -47,11 +58,6 @@ def load_config():
             return json.loads(data)
     except (FileNotFoundError, json.JSONDecodeError):
         return {}
-
-
-# Initial load
-global_config = load_config()
-
 # Define a handler for the file change
 class ConfigFileChangeHandler(FileSystemEventHandler):
     def on_modified(self, event):
@@ -68,16 +74,11 @@ observer.schedule(ConfigFileChangeHandler(), path='.', recursive=False)
 observer.start()
 
 
-token_cache = {}
-
-
 def connect_to_mt4(user_id):
     user_config = global_config.get(str(user_id), {})
     try:
-        channel = grpc.secure_channel('mt4grpc.mtapi.io:443', grpc.ssl_channel_credentials())
-        connection = mt4_pb2_grpc.ConnectionStub(channel)
         req = ConnectRequest(user=user_config["user"], password=user_config["pass"], host=user_config["host"], port=443)
-        res = connection.Connect(req)
+        res = connection_stub.Connect(req)
         if res.error.message:
             logging.error(f"Error for user {user_id}: {res.error.message}")
             raise Exception(res.error.message)
@@ -86,7 +87,7 @@ def connect_to_mt4(user_id):
             "last_updated": datetime.now()
         }
         logging.info(f"Token refreshed for user {user_id}")
-        return res.result, mt4_pb2_grpc.TradingStub(channel)
+        return res.result
     except Exception as e:
         logging.error(f"MT4 connection error for user {user_id}: {str(e)}")
         raise
