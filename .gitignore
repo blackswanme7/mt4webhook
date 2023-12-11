@@ -4,3 +4,4 @@ server.log
 __pycache__
 config.json.back
 .env
+authorized_users.json
