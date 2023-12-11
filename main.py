@@ -20,17 +20,17 @@ logging.getLogger('watchdog').setLevel(logging.WARNING)
 app = Flask(__name__)
 
 # # TradingView IP addresses
-# allowed_ips = ["52.89.214.238", "34.212.75.30", "54.218.53.128", "52.32.178.7"]
+allowed_ips = ["52.89.214.238", "34.212.75.30", "54.218.53.128", "52.32.178.7"]
 
 # # Decorator to limit access to allowed IPs
-# def limit_ips(allowed_ips):
-#     def decorator(f):
-#         def decorated_function(*args, **kwargs):
-#             if request.remote_addr not in allowed_ips:
-#                 abort(403)  # Forbidden access
-#             return f(*args, **kwargs)
-#         return decorated_function
-#     return decorator
+def limit_ips(allowed_ips):
+    def decorator(f):
+        def decorated_function(*args, **kwargs):
+            if request.remote_addr not in allowed_ips:
+                abort(403)  # Forbidden access
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
 
 # A dictionary to store tokens for each user
 # Format: { user_id: {"token": <token>, "last_updated": <datetime>} }
@@ -127,7 +127,7 @@ def reload_config():
     global_config = load_config()
 
 @app.route('/<int:user_id>', methods=['POST'])
-# @limit_ips(allowed_ips)
+@limit_ips(allowed_ips)
 def webhook(user_id):
     reload_config()  # Reload the config before using it
     try:
