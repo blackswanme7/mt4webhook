@@ -127,7 +127,7 @@ def reload_config():
     global_config = load_config()
 
 @app.route('/<int:user_id>', methods=['POST'])
-# @limit_ips(allowed_ips)
+@limit_ips(allowed_ips)
 def webhook(user_id):
     reload_config()  # Reload the config before using it
     try:
